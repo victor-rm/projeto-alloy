@@ -1,40 +1,76 @@
-sig user{
-    org_user: lone organization,
-    user_repositorys: set repository
+/** 
+-- Comentários de Massoni: inicio --
+
+"Não é necessário ter ciclos assim, lembrando que relações em alloy não tem necessariamente direção"
+Lobo: porém ta tudo ciclico aqui
+
+"Vamos dizer que os usuários não necessariamente precisam estar em organizações...mas se estiverem, 
+seguem as regras"
+Lobo: não tem nada restringindo isso, então ta ok
+ 
+"Quando falamos um sistema estamos falando da possibilidade de várias organizações independentes, certo?"
+Lobo: o sistema permite organizações independentes
+
+"Usuários podem estar sem usar nada"
+Lobo: o sistema permite usuarios que não pertencem a organizações ou repos
+
+Pergunta: "Os usuários podem acessa um repositório e não trabalhar nele?"
+Massoni: "Nem todos os usuários precisam ser desenvolvedores" (significa que um Usuario pode não trabalhar em nenhum repo)
+
+-- Comentários de Massoni: fim --
+
+casos aceitáveis:
+usuários sem repositórios (ok)
+repositórios sem usuários (ok)
+
+*/
+
+sig Organization {
+    repositories: set Repository,
+    members: set User
 }
 
-sig organization{
-    users: set user,
-    org_repositorys: set repository
+sig Repository {
+    belongsTo: one Organization // Cada repositório tem apenas uma organização
 }
 
-sig repository{
-    collaborators: set user,
-    org: one organization
+sig User {
+    belongsTo: lone Organization, // Cada usuário pertence a apenas uma organização
+    interactsWith: set Repository
 }
 
+// Um usuário pode ter no máximo 5 repositórios
+pred userInteractsWithAtMost5Repos[u:User] {
+    #u.interactsWith >= 0 and #u.interactsWith <= 5
+}
+
+// Um usuário pode interagir apenas com repositórios da organização que ele pertence
+pred userInteractsOnlyWithOwnOrgRepos[u:User, o:Organization, r:Repository] {
+    r in u.interactsWith iff (r in o.repositories and u in o.members)
+}
+
+// Predicado para previnir de um repositorio pertencer a mais de uma organização
+pred repoAndOrgReferenceIntegrity[o:Organization, r:Repository] {
+    o = r.belongsTo iff r in o.repositories
+}
+
+// Predicado para previnir o usuário de pertencer a mais de uma organização
+pred userAndOrgReferenceIntegrity[u:User, o:Organization] {
+    o = u.belongsTo iff u in o.members
+}
 
 fact {
 
-    // eu ja não expecifico isso na assinatura ????
-    // todo usuário pertence a pelo menos uma organização ou somente uma ??? duvida se é lone ou one 
-	all u:user | lone u.org_user
+    all r:Repository, o:Organization | repoAndOrgReferenceIntegrity[o,r]
 
+    all u:User, o:Organization | userAndOrgReferenceIntegrity[u,o]
 
-    //Os usuários so podem acessar repositório da organização que pertence
-	all u: user| some o: organization | u in o.users iff u.user_repositorys in o.org_repositorys
+    all u:User | userInteractsWithAtMost5Repos[u]
 
-    //Os repositórios so podem ser de uma unica organização e a repositórios precisam apontar pra ela
-    all r: repository | 
-        one r.org
-        and r in r.org.org_repositorys
+    all u:User, o:Organization, r: Repository | userInteractsOnlyWithOwnOrgRepos[u,o,r]
 
-    // um usuário pode ter no máximo 5 repositórios
-    all u: user | # u.user_repositorys <= 5
-
-    // aqui ja viajei, algum usuário tem algum repositorio 
-    some u: user , r: repository| 
-        u in r.collaborators and r in u.user_repositorys
 }
-// KKKKKKKKKKKKKkkk essa execução
-run {} for 3
+
+// Faltam fazer os asserts
+
+run {} for 5
