@@ -36,12 +36,15 @@ sig Repository {
 
 sig User {
     belongsTo: lone Organization, // Cada usuário pertence a apenas uma organização
-    interactsWith: set Repository
+    interactsWith: set Repository,
+    develop: set Repository
+
 }
 
 // Um usuário pode ter no máximo 5 repositórios 
-pred userInteractsWithAtMost5Repos[u:User] {
-    #u.interactsWith >= 0 and #u.interactsWith <= 5
+pred userDevelopsConstraint[u: User] {
+    #u.develop <= 5
+    u.develop in u.interactsWith
 }
 
 // Um usuário pode interagir apenas com repositórios da organização que ele pertence
@@ -71,6 +74,7 @@ pred userInteractsOnlyWithOwnOrgRepos[u: User] {
     userInteractsOnlyWithReposFromHisOrg[u] and userCanOnlyInteractIfMember[u]
 }
 
+
 fact {
 
     all r:Repository, o:Organization | 
@@ -79,8 +83,8 @@ fact {
     all u:User, o:Organization |
          userAndOrgReferenceIntegrity[u,o]
 
-    all u:User |
-         userInteractsWithAtMost5Repos[u]
+    all u: User |
+        userDevelopsConstraint[u]
 
     all u: User | 
         userInteractsOnlyWithOwnOrgRepos[u]
