@@ -39,7 +39,7 @@ sig User {
     interactsWith: set Repository
 }
 
-// Um usuário pode ter no máximo 5 repositórios
+// Um usuário pode ter no máximo 5 repositórios 
 pred userInteractsWithAtMost5Repos[u:User] {
     #u.interactsWith >= 0 and #u.interactsWith <= 5
 }
@@ -59,18 +59,48 @@ pred userAndOrgReferenceIntegrity[u:User, o:Organization] {
     o = u.belongsTo iff u in o.members
 }
 
-fact {
-
-    all r:Repository, o:Organization | repoAndOrgReferenceIntegrity[o,r]
-
-    all u:User, o:Organization | userAndOrgReferenceIntegrity[u,o]
-
-    all u:User | userInteractsWithAtMost5Repos[u]
-
-    all u:User, o:Organization, r: Repository | userInteractsOnlyWithOwnOrgRepos[u,o,r]
-
+pred userInteractsOnlyWithReposFromHisOrg[u: User] {
+    all r: u.interactsWith | r.belongsTo = u.belongsTo
 }
 
+pred userCanOnlyInteractIfMember[u: User] {
+    all r: u.interactsWith | u in r.belongsTo.members
+}
+
+pred userInteractsOnlyWithOwnOrgRepos[u: User] {
+    userInteractsOnlyWithReposFromHisOrg[u] and userCanOnlyInteractIfMember[u]
+}
+
+fact {
+
+    all r:Repository, o:Organization | 
+        repoAndOrgReferenceIntegrity[o,r]
+
+    all u:User, o:Organization |
+         userAndOrgReferenceIntegrity[u,o]
+
+    all u:User |
+         userInteractsWithAtMost5Repos[u]
+
+    all u: User | 
+        userInteractsOnlyWithOwnOrgRepos[u]
+}
 // Faltam fazer os asserts
 
-run {} for 5
+assert UserHasAtMost5Repos {
+    all u: User | #u.interactsWith >= 0 and #u.interactsWith <= 5
+}
+check UserHasAtMost5Repos
+
+assert UserOnlyInteractsWithOwnOrgRepos {
+    all u: User, r: u.interactsWith | r.belongsTo = u.belongsTo
+}
+check UserOnlyInteractsWithOwnOrgRepos
+
+
+assert UserOrgReferenceIntegrity {
+    all u: User, o: Organization | o = u.belongsTo iff u in o.members
+}
+check UserOrgReferenceIntegrity
+
+run {} for exactly 4 Organization, exactly 5 User, exactly 5 Repository
