@@ -31,7 +31,7 @@ sig Organization {
 }
 
 sig Repository {
-    belongsTo: one Organization // Cada repositório tem apenas uma organização
+    owner: one Organization // Cada repositório tem apenas uma organização
 }
 
 sig User {
@@ -47,14 +47,9 @@ pred userDevelopsConstraint[u: User] {
     u.develop in u.interactsWith
 }
 
-// Um usuário pode interagir apenas com repositórios da organização que ele pertence
-pred userInteractsOnlyWithOwnOrgRepos[u:User, o:Organization, r:Repository] {
-    r in u.interactsWith iff (r in o.repositories and u in o.members)
-}
-
 // Predicado para previnir de um repositorio pertencer a mais de uma organização
 pred repoAndOrgReferenceIntegrity[o:Organization, r:Repository] {
-    o = r.belongsTo iff r in o.repositories
+    o = r.owner iff r in o.repositories
 }
 
 // Predicado para previnir o usuário de pertencer a mais de uma organização
@@ -63,11 +58,11 @@ pred userAndOrgReferenceIntegrity[u:User, o:Organization] {
 }
 
 pred userInteractsOnlyWithReposFromHisOrg[u: User] {
-    all r: u.interactsWith | r.belongsTo = u.belongsTo
+    all r: u.interactsWith | r.owner = u.belongsTo
 }
 
 pred userCanOnlyInteractIfMember[u: User] {
-    all r: u.interactsWith | u in r.belongsTo.members
+    all r: u.interactsWith | u in r.owner.members
 }
 
 pred userInteractsOnlyWithOwnOrgRepos[u: User] {
@@ -92,12 +87,12 @@ fact {
 // Faltam fazer os asserts
 
 assert UserHasAtMost5Repos {
-    all u: User | #u.interactsWith >= 0 and #u.interactsWith <= 5
+    all u: User | lone u.interactsWith
 }
 check UserHasAtMost5Repos
 
 assert UserOnlyInteractsWithOwnOrgRepos {
-    all u: User, r: u.interactsWith | r.belongsTo = u.belongsTo
+    all u: User, r: u.interactsWith | r.owner = u.belongsTo
 }
 check UserOnlyInteractsWithOwnOrgRepos
 
@@ -107,4 +102,5 @@ assert UserOrgReferenceIntegrity {
 }
 check UserOrgReferenceIntegrity
 
-run {} for exactly 4 Organization, exactly 5 User, exactly 5 Repository
+run {} for 5 Organization, 3 User, 3 Repository
+
