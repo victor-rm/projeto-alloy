@@ -69,6 +69,28 @@ pred userInteractsOnlyWithOwnOrgRepos[u: User] {
     userInteractsOnlyWithReposFromHisOrg[u] and userCanOnlyInteractIfMember[u]
 }
 
+pred exemplo {
+    some o: Organization, u1, u2: User, r1, r2, r3: Repository |
+        // Organização
+        o.repositories = r1 + r2 + r3 and 
+        
+        r1.owner = o and 
+        r2.owner = o and 
+        r3.owner = o and 
+
+        // Usuários pertencem à organização
+        u1.belongsTo = o and 
+        u2.belongsTo = o and 
+        o.members = u1 + u2 and
+
+        // u1 interage com 2 repositórios, desenvolve em 1
+        u1.interactsWith = r1 + r2 and 
+        u1.develop = r1 and 
+
+        // u2 interage com os 3, desenvolve em 3 (válido porque <=5)
+        u2.interactsWith = r1 + r2 + r3 and 
+        u2.develop = r2 + r3 
+}
 
 fact {
 
@@ -104,3 +126,4 @@ check UserOrgReferenceIntegrity
 
 run {} for 5 Organization, 3 User, 3 Repository
 
+run exemplo for exactly 1 Organization, exactly 2 User, exactly 3 Repository
