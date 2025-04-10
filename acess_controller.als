@@ -108,16 +108,38 @@ fact {
         userInteractsOnlyWithOwnOrgRepos[u]
 }
 
+assert UserDevelopsWithinInteractionLimit {
+    all u: User | #u.develop <= 5 and u.develop in u.interactsWith
+}
+check UserDevelopsWithinInteractionLimit for 5
+
+assert AllDevelopersAreCollaborators {
+    all u: User, r: Repository |
+     r in u.develop implies u in r.collaborators
+}
+check AllDevelopersAreCollaborators  for 5
+
+assert AllCollaboratorsAreOrgsMembers {
+    all u: User, r: Repository |
+     u in r.collaborators implies u in r.owner.members
+}
+check AllCollaboratorsAreOrgsMembers for 5
+
+assert DevOnlyDevelopsInOrgRepos {
+    all u: User | all r: u.develop | r.owner = u.belongsTo
+}
+check DevOnlyDevelopsInOrgRepos for 5
+
 assert UserOnlyInteractsWithOwnOrgRepos {
     all u: User, r: u.interactsWith | r.owner = u.belongsTo
 }
-check UserOnlyInteractsWithOwnOrgRepos
+check UserOnlyInteractsWithOwnOrgRepos for 5
 
 
 assert UserOrgReferenceIntegrity {
     all u: User, o: Organization | o = u.belongsTo iff u in o.members
 }
-check UserOrgReferenceIntegrity
+check UserOrgReferenceIntegrity for 5
 
 run {} for 5 Organization, 3 User, 3 Repository
 
