@@ -31,20 +31,21 @@ sig Organization {
 }
 
 sig Repository {
-    owner: one Organization // Cada repositório tem apenas uma organização
+    owner: one Organization, // Cada repositório tem apenas uma organização
+    collaborators: set User
 }
 
 sig User {
     belongsTo: lone Organization, // Cada usuário pertence a apenas uma organização
     interactsWith: set Repository,
     develop: set Repository
-
 }
 
 // Um usuário pode ter no máximo 5 repositórios 
 pred userDevelopsConstraint[u: User] {
     #u.develop <= 5
     u.develop in u.interactsWith
+    u.develop = { r: Repository | u in r.collaborators }
 }
 
 // Predicado para previnir de um repositorio pertencer a mais de uma organização
@@ -106,12 +107,6 @@ fact {
     all u: User | 
         userInteractsOnlyWithOwnOrgRepos[u]
 }
-// Faltam fazer os asserts
-
-assert UserHasAtMost5Repos {
-    all u: User | lone u.interactsWith
-}
-check UserHasAtMost5Repos
 
 assert UserOnlyInteractsWithOwnOrgRepos {
     all u: User, r: u.interactsWith | r.owner = u.belongsTo
